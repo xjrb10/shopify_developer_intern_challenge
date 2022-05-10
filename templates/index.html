@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ app_name }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+
+    <style>
+        .card-footer-item:not(:last-child) {
+            border-right: unset;
+        }
+
+        .card-footer {
+            border-top: unset;
+        }
+    </style>
+</head>
+<body>
+<section class="section">
+    <div class="container">
+        <h1 class="title">
+            {{ app_name }}
+        </h1>
+        <p class="subtitle">
+            As submitted by <strong>Ralph Boncales</strong>, built with Python 3.9, Jinja2 and Bulma! {{ "\N{SPARKLING HEART}" }}
+        </p>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <div class="buttons is-justify-content-right">
+            <button class="button is-success modal-trigger" data-target="add-item">Publish New Item</button>
+        </div>
+        <div class="columns is-flex is-flex-wrap-wrap is-justify-content-left p-6">
+            {% for _id, item in items.items() %}
+            <div class="card column is-one-fifth p-0 m-5">
+                <div class="card-image">
+                    <figure class="image is-square">
+                        <img src="{{ item.image }}" alt="{{ item.name }} image">
+                    </figure>
+                </div>
+
+                <div class="card-content">
+                    <div class="content">
+                        <p class="title">{{ item.name }}</p>
+                        <p class="subtitle"><strong>Quantity:</strong> {{ item.quantity }}</p>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="#" class="card-footer-item">Edit</a>
+                        <a onclick="itemDeleteHandler({{ _id }})" class="card-footer-item has-text-danger">Delete</a>
+                    </footer>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% if deleted_items|length %}
+        <section class="section">
+            <div class="container">
+                <h1 class="title">
+                    Deleted Items
+                </h1>
+            </div>
+        </section>
+        <div class="columns is-flex is-flex-wrap-wrap is-justify-content-left p-6">
+            {% for _id, item_data in deleted_items %}
+            {% set item = item_data.get("item") %}
+            {% set reason = item_data.get("reason") %}
+            <div class="card column is-one-fifth p-0 m-5">
+                <div class="card-image">
+                    <figure class="image is-square">
+                        <img src="{{ item.image }}" alt="{{ item.name }} image" style="filter: saturate(0);">
+                    </figure>
+                </div>
+
+                <div class="card-content">
+                    <div class="content">
+                        <p class="title">{{ item.name }}</p>
+                        <p class="subtitle"><strong>Quantity:</strong> {{ item.quantity }}<br /><strong>Removal Reason:</strong><br />{{ reason }}</p>
+                    </div>
+                    <footer class="card-footer">
+                        <a onclick="itemRestoreHandler({{ _id }})" class="card-footer-item has-text-success">Restore</a>
+                    </footer>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+
+<div id="add-item" class="modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Publish New Item</p>
+            <button class="delete" aria-label="close"></button>
+        </header>
+        <form action="/item" method="post">
+            <section class="modal-card-body">
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">Item Name</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control">
+                                <input name="name" class="input" type="text" required>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">Quantity</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control">
+                                <input name="quantity" class="input" type="number" required>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">Image</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <p class="control">
+                                <input name="image" class="input" type="url" required>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+                <input class="button is-success" type="submit" value="Submit">
+                <button class="button" data-target="close" type="button">Cancel</button>
+            </footer>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    document.addEventListener('DOMContentLoaded', () => {
+        // Functions to open and close a modal
+        function openModal($el) {
+            $el.classList.add('is-active');
+        }
+
+        function closeModal($el) {
+            $el.classList.remove('is-active');
+        }
+
+        function closeAllModals() {
+            (document.querySelectorAll('.modal') || []).forEach(($modal) => {
+                closeModal($modal);
+            });
+        }
+
+        // Add a click event on buttons to open a specific modal
+        (document.querySelectorAll('.modal-trigger') || []).forEach(($trigger) => {
+            const modal = $trigger.dataset.target;
+            const $target = document.getElementById(modal);
+
+            $trigger.addEventListener('click', () => {
+                openModal($target);
+            });
+        });
+
+        // Add a click event on various child elements to close the parent modal
+        (document.querySelectorAll('.modal-background, .modal-close, .modal-card-head .delete, .modal-card-foot .button[data-target="close"]') || []).forEach(($close) => {
+            const $target = $close.closest('.modal');
+
+            $close.addEventListener('click', () => {
+                closeModal($target);
+            });
+        });
+
+        // Add a keyboard event to close all modals
+        document.addEventListener('keydown', (event) => {
+            const e = event || window.event;
+
+            if (e.keyCode === 27) { // Escape key
+                closeAllModals();
+            }
+        });
+
+        //Define the event handler for the form when it's submitted
+        document.querySelectorAll("form").forEach(e => e.addEventListener("submit", async (e) => {
+            //Prevent browser default behavior
+            e.preventDefault();
+
+            //Get the entire form fields
+            let form = e.currentTarget;
+
+            //Get URL for api endpoint
+            let url = form.action;
+            let method = form.method;
+
+            try {
+                //Form field instance
+                let formFields = new FormData(form);
+
+                await sendFormFieldsAsJson(url, method, Object.fromEntries(formFields.entries()));
+                window.location.reload();
+            } catch (error) {
+                // Handle the error here.
+                console.error(`An has occured ${error}`);
+            }
+        }));
+    });
+
+    function itemDeleteHandler(id) {
+        (async (id) => {
+            let reason = prompt("Enter delete reason:")
+            if (reason === null || reason === "") return
+            await sendFormFieldsAsJson(`/item/${id}/delete`, "post", {
+                "reason": reason
+            });
+            window.location.reload();
+        })(id);
+    }
+
+    function itemRestoreHandler(id) {
+        (async (id) => {
+            await sendFormFieldsAsJson(`/item/${id}/restore`, "put");
+            window.location.reload();
+        })(id);
+    }
+
+    async function sendFormFieldsAsJson(url, method, formData) {
+        //Set the fetch options (headers, body)
+        let fetchOptions = {
+            //HTTP method set to POST.
+            method: method,
+            //Set the headers that specify you're sending a JSON body request and accepting JSON response
+            headers: {
+                "Content-Type": "application/json",
+                Accept: "application/json",
+            },
+        };
+        if (formData !== null) fetchOptions.body = JSON.stringify(formData)
+
+        //Get the response body as JSON.
+        //If the response was not OK, throw an error.
+        let res = await fetch(url, fetchOptions);
+
+        //If the response is not ok throw an error (for debugging)
+        if (!res.ok) {
+            let error = await res.text();
+            throw new Error(error);
+        }
+        //If the response was OK, return the response body.
+        return res.json();
+    }
+</script>
+
+<footer class="footer">
+    <div class="content has-text-centered">
+        <p>
+            {{ app_name }} by <a href="https://fb.me/ralph.boncales">Ralph Boncales</a><br/>
+            <i>Images provided by <a href="https://unsplash.com">Unsplash</a></i> <br/>
+            <i><a href="https://github.com/xjrb10/shopify_developer_intern_challenge">Check out the Source Code</a></i>
+        </p>
+    </div>
+</footer>
+</body>
+</html>
